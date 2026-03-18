@@ -1,0 +1,11 @@
+# Path to Old World game install
+# macOS (Steam): ~/Library/Application Support/Steam/steamapps/common/Old World
+# Windows (Steam): C:\Program Files (x86)\Steam\steamapps\common\Old World
+# Linux (Steam): ~/.steam/steam/steamapps/common/Old World
+OLDWORLD_PATH=""
+
+# Paths to local Old World maps folder
+# macOS: ~/Library/Application Support/OldWorld/Maps
+# Linux: ~/.local/share/OldWorld/Maps
+# Windows: %APPDATA%\OldWorld\Mods
+OLDWORLD_MAPS_PATH=""

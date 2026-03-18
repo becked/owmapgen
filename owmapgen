@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Wrapper script for OldWorldMapGen that suppresses Mono's JIT warnings.
+# Mono prints harmless "cant resolve internal call" warnings when loading
+# Unity assemblies. These are patched by Harmony before execution.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+mono "$SCRIPT_DIR/src/OldWorldMapGen/bin/OldWorldMapGen.exe" "$@" 2>&1 \
+  | grep -v \
+    -e "cant resolve internal call" \
+    -e "mono runtime and class libraries" \
+    -e "out of sync library" \
+    -e "the other too" \
+    -e "Do not report this" \
+    -e "broken mono install" \
+    -e "other errors or faults" \
+    -e "and you need to fix" \
+    -e "When you update one" \
+  | cat -s

@@ -1,0 +1,8 @@
+bin/
+obj/
+maps/
+Reference
+*.exe
+*.dll
+*.pdb
+*.cache
