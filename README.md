@@ -151,17 +151,17 @@ The tool runs the game's own map generation code (from `TenCrowns.GameCore.dll`)
 │                                                         │
 │  ┌────────────────┐  ┌───────────────────────────────┐  │
 │  │ CLI (Program)  │  │ Stubs & Shims                 │  │
-│  │ - parse args   │  │ - FileSystemXMLLoader          │  │
-│  │ - setup params │  │     reads XML from disk        │  │
+│  │ - parse args   │  │ - FileSystemXMLLoader         │  │
+│  │ - setup params │  │     reads XML from disk       │  │
 │  │ - run script   │  │ - StubModPath / StubScriptMgr │  │
-│  │ - write XML    │  │     no-op game interfaces      │  │
+│  │ - write XML    │  │     no-op game interfaces     │  │
 │  └───────┬────────┘  │ - HeadlessGameFactory         │  │
-│          │           │     skips ColorManager          │  │
-│          │           │ - UnityPatches (Harmony)       │  │
-│          │           │     stubs Debug.Log, patches   │  │
-│          │           │     Mathf.PerlinNoise           │  │
+│          │           │     skips ColorManager        │  │
+│          │           │ - UnityPatches (Harmony)      │  │
+│          │           │     stubs Debug.Log, patches  │  │
+│          │           │     Mathf.PerlinNoise         │  │
 │          │           └───────────────┬───────────────┘  │
-│          ▼                           ▼                   │
+│          ▼                           ▼                  │
 │  ┌───────────────────────────────────────────────────┐  │
 │  │ Game DLLs (referenced, not modified)              │  │
 │  │                                                   │  │
