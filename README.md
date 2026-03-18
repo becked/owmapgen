@@ -6,6 +6,11 @@ A standalone command-line tool that generates random [Old World](https://store.s
 
 **Prerequisites:** [.NET SDK](https://dotnet.microsoft.com/download) (for building), Old World installed via Steam. macOS/Linux users also need [Mono](https://www.mono-project.com/download/stable/).
 
+On macOS with Homebrew:
+```bash
+brew install dotnet mono
+```
+
 ```bash
 # Build
 dotnet build src/OldWorldMapGen/ -p:GameDir="/path/to/Old World"
