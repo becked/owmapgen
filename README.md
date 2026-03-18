@@ -6,11 +6,6 @@ A standalone command-line tool that generates random [Old World](https://store.s
 
 **Prerequisites:** [.NET SDK](https://dotnet.microsoft.com/download) (for building), Old World installed via Steam. macOS/Linux users also need [Mono](https://www.mono-project.com/download/stable/).
 
-On macOS with Homebrew:
-```bash
-brew install dotnet mono
-```
-
 ```bash
 # Build
 dotnet build src/OldWorldMapGen/ -p:GameDir="/path/to/Old World"
@@ -26,11 +21,11 @@ Output is written to `./maps/` by default.
 
 ## Platform Support
 
-| Platform | Runtime | How to run |
-|----------|---------|------------|
-| macOS | Mono | `./owmapgen` wrapper script |
-| Linux | Mono | `./owmapgen` wrapper script |
-| Windows | .NET Framework 4.7.2 (built into Windows 10+) | Run `OldWorldMapGen.exe` directly |
+| Platform | Runtime | Install | How to run |
+|----------|---------|---------|------------|
+| macOS | Mono | `brew install dotnet mono` | `./owmapgen` wrapper script |
+| Linux | Mono | [.NET SDK](https://dotnet.microsoft.com/download) + [Mono](https://www.mono-project.com/download/stable/) via package manager | `./owmapgen` wrapper script |
+| Windows | .NET Framework 4.7.2 (built into Windows 10+) | [.NET SDK](https://dotnet.microsoft.com/download) | Run `OldWorldMapGen.exe` directly |
 
 The `owmapgen` wrapper script filters harmless Mono JIT warnings that are printed to stdout when loading Unity assemblies. These warnings do not affect functionality. You can also run `mono src/OldWorldMapGen/bin/OldWorldMapGen.exe` directly if you prefer.
 
