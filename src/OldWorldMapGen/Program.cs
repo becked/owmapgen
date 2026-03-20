@@ -26,6 +26,28 @@ namespace OldWorldMapGen
                 return 0;
             }
 
+            if (opts.ListMods)
+            {
+                var mods = ModLoader.ListAvailableMods();
+                if (mods.Count == 0)
+                {
+                    Console.WriteLine("No mods found.");
+                    string modsDir = ModLoader.GetModsDirectory();
+                    Console.WriteLine($"Mods directory: {modsDir}");
+                }
+                else
+                {
+                    Console.WriteLine("Installed mods:");
+                    foreach (var mod in mods)
+                    {
+                        string tags = string.IsNullOrEmpty(mod.Tags) ? "" : $" [{mod.Tags}]";
+                        string author = string.IsNullOrEmpty(mod.Author) ? "" : $" by {mod.Author}";
+                        Console.WriteLine($"  {mod.DisplayName,-30}{author}{tags}");
+                    }
+                }
+                return 0;
+            }
+
             // Resolve game directory
             string gameDir = ResolveGameDir(opts.GameDir);
             if (gameDir == null)
@@ -67,14 +89,27 @@ namespace OldWorldMapGen
                     Assembly.LoadFrom(dllPath);
             }
 
+            // Load mod DLLs (must happen after game assemblies, before Infos init)
+            var loadedMods = new List<ModLoader.ModInfo>();
+            if (opts.Mods.Count > 0)
+                loadedMods = ModLoader.LoadMods(opts.Mods);
+
             // Patch game methods that call Unity native functions (e.g., Mathf.PerlinNoise)
             UnityPatches.ApplyGamePatches();
 
-            // Initialize game systems (still under stderr suppression)
+            // Initialize game systems
+            var xmlLoader = new FileSystemXMLLoader(xmlDir);
+            if (loadedMods.Count > 0)
+            {
+                xmlLoader.AddModInfosDirs(loadedMods
+                    .Where(m => m.InfosDir != null)
+                    .Select(m => m.InfosDir).ToList());
+            }
+
             ModSettings modSettings;
             try
             {
-                modSettings = new ModSettings(new NullApplication(), new FileSystemXMLLoader(xmlDir),
+                modSettings = new ModSettings(new NullApplication(), xmlLoader,
                     new StubUserScriptManager(), new StubModPath(), null);
             }
             catch (Exception ex)
@@ -666,6 +701,10 @@ namespace OldWorldMapGen
 
             // Raw map options
             public List<KeyValuePair<string, string>> MapOptions = new List<KeyValuePair<string, string>>();
+
+            // Mods
+            public List<string> Mods = new List<string>();
+            public bool ListMods;
         }
 
         static Options ParseArgs(string[] args)
@@ -747,6 +786,15 @@ namespace OldWorldMapGen
                         opts.CityNumber = args[i];
                         break;
 
+                    // Mods
+                    case "--mod":
+                        if (++i >= args.Length) { Console.Error.WriteLine("Error: --mod requires a name or path."); return null; }
+                        opts.Mods.Add(args[i]);
+                        break;
+                    case "--list-mods":
+                        opts.ListMods = true;
+                        break;
+
                     // Script-specific options
                     case "--map-option":
                         if (++i >= args.Length) { Console.Error.WriteLine("Error: --map-option requires KEY=VALUE."); return null; }
@@ -780,8 +828,10 @@ Optional:
   --game-dir <path>         Game install path (auto-detected if not specified)
   --output <path>           Output directory (default: ./maps/)
   --count <n>               Number of maps to generate (default: 1)
+  --mod <name|path>         Load a mod (repeatable, e.g., --mod ""Middle Kingdom"")
   --list-scripts            List available map scripts and exit
   --list-options <script>   List options for a script and exit
+  --list-mods               List installed mods and exit
 
 Advanced:
   --seed <n>                Map seed 1-99999999 (default: random)

@@ -30,7 +30,7 @@ Target framework is net472. Game DLLs (`TenCrowns.GameCore.dll`, `Mohawk.SystemC
 mono src/OldWorldMapGen/bin/OldWorldMapGen.exe --script "Continent" --size medium --players 4
 ```
 
-Key CLI flags: `--list-scripts`, `--list-options <script>`, `--game-dir <path>`, `--output <path>`, `--count <n>`, `--seed <n>`.
+Key CLI flags: `--list-scripts`, `--list-options <script>`, `--game-dir <path>`, `--output <path>`, `--count <n>`, `--seed <n>`, `--mod <name|path>`, `--list-mods`.
 
 ## Testing
 
@@ -46,14 +46,16 @@ No test framework. Verify changes by running map generation and inspecting XML o
 3. Register assembly resolution handler for game DLLs
 4. Apply Harmony patches to stub Unity methods
 5. Load game assemblies via reflection
-6. Apply game-specific patches (Perlin noise transpiler)
-7. Create `ModSettings` with stub implementations
-8. Load Infos database (reflection-discovers map script classes)
-9. Build normalized script lookup table
-10. Run map generation with retry logic
+6. Load mod DLLs (if `--mod` specified)
+7. Apply game-specific patches (Perlin noise transpiler)
+8. Create `ModSettings` with stub implementations (FileSystemXMLLoader merges mod XML)
+9. Load Infos database (reflection-discovers map script classes, including mod scripts)
+10. Build normalized script lookup table
+11. Run map generation with retry logic
 
 **Stub/shim layer** — minimal implementations that replace Unity-dependent systems:
-- `FileSystemXMLLoader.cs`: Reads game XML data from disk instead of Unity asset bundles. Handles base files + DLC add-on merging (e.g., `terrain.xml` + `terrain-btt.xml`).
+- `ModLoader.cs`: Discovers mods from platform-specific mods directory, parses `ModInfo.xml`, loads mod DLLs. Handles dependency ordering.
+- `FileSystemXMLLoader.cs`: Reads game XML data from disk instead of Unity asset bundles. Handles base files + DLC add-on merging (e.g., `terrain.xml` + `terrain-btt.xml`). When mods are loaded, implements `GetModdedXML()` and `GetChangedXML()` to merge mod XML using the game's `ModdedXMLType` flags.
 - `HeadlessGameFactory.cs`: Overrides `CreateColorManager()` to return null (skips Unity color space conversion).
 - `StubModPath.cs` / `StubUserScriptManager.cs`: No-op implementations for mod system interfaces.
 - `UnityPatches.cs`: Harmony patches — stubs `Debug.Log`, `Application.Quit`, and transpiles `Mathf.PerlinNoise` to a managed Perlin noise implementation (`MathfShim`).

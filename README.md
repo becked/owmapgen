@@ -65,8 +65,10 @@ Optional:
   --game-dir <path>         Game install path (auto-detected if not specified)
   --output <path>           Output directory (default: ./maps/)
   --count <n>               Number of maps to generate (default: 1)
+  --mod <name|path>         Load a mod (repeatable, e.g., --mod "Middle Kingdom")
   --list-scripts            List available map scripts and exit
   --list-options <script>   List options for a script and exit
+  --list-mods               List installed mods and exit
 
 Advanced:
   --seed <n>                Map seed 1-99999999 (default: random)
@@ -125,6 +127,31 @@ Set them with `--map-option KEY=VALUE`, which can be repeated:
   --map-option MAP_OPTIONS_MULTI_CONTINENT_TRIBES=MAP_OPTION_CONTINENT_TRIBES_QUADRANTS
 ```
 
+### Mod Support
+
+Mods that add custom map scripts can be loaded with `--mod`. The mod name matches against directory names and display names in the platform-specific mods folder (`~/Library/Application Support/OldWorld/Mods/` on macOS, `%APPDATA%/OldWorld/Mods/` on Windows). You can also pass an absolute path.
+
+```bash
+# List installed mods
+./owmapgen --list-mods
+
+# Load a mod and list its scripts
+./owmapgen --mod "Middle Kingdom" --list-scripts
+
+# See mod-specific options
+./owmapgen --mod "Middle Kingdom" --list-options "The Middle Kingdom"
+
+# Generate a map using a mod script
+./owmapgen --mod "Middle Kingdom" --script "The Middle Kingdom" --size medium --players 4
+
+# Load multiple mods
+./owmapgen --mod "Middle Kingdom" --mod "Another Mod" --list-scripts
+```
+
+The tool loads mod DLLs and merges mod XML data (new map options, text strings, global tweaks) into the game's Infos database using the same interfaces the game uses. Mod scripts then appear alongside the base game scripts in `--list-scripts`.
+
+**Note:** Some mods may not be compatible with your installed game version. If a mod was compiled against a different version of the game's API, you may see errors like "Method not found" during map generation.
+
 ### Examples
 
 ```bash
@@ -146,55 +173,59 @@ Set them with `--map-option KEY=VALUE`, which can be repeated:
 The tool runs the game's own map generation code (from `TenCrowns.GameCore.dll`) outside of the Unity engine. This means maps are generated using the exact same algorithms, terrain rules, and placement logic as the game itself.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  OldWorldMapGen                                         │
-│                                                         │
-│  ┌────────────────┐  ┌───────────────────────────────┐  │
-│  │ CLI (Program)  │  │ Stubs & Shims                 │  │
-│  │ - parse args   │  │ - FileSystemXMLLoader         │  │
-│  │ - setup params │  │     reads XML from disk       │  │
-│  │ - run script   │  │ - StubModPath / StubScriptMgr │  │
-│  │ - write XML    │  │     no-op game interfaces     │  │
-│  └───────┬────────┘  │ - HeadlessGameFactory         │  │
-│          │           │     skips ColorManager        │  │
-│          │           │ - UnityPatches (Harmony)      │  │
-│          │           │     stubs Debug.Log, patches  │  │
-│          │           │     Mathf.PerlinNoise         │  │
-│          │           └───────────────┬───────────────┘  │
-│          ▼                           ▼                  │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │ Game DLLs (referenced, not modified)              │  │
-│  │                                                   │  │
-│  │ TenCrowns.GameCore.dll                            │  │
-│  │   MapScriptContinent, MapScriptDonut, ...         │  │
-│  │   Infos, ModSettings, GameFactory                 │  │
-│  │   MapBuilder, TileData, NoiseGenerator            │  │
-│  │                                                   │  │
-│  │ Mohawk.SystemCore.dll                             │  │
-│  │   Fractal, RandomStruct, DictionaryList           │  │
-│  │                                                   │  │
-│  │ UnityEngine.CoreModule.dll                        │  │
-│  │   Vector3, Mathf (native calls patched out)       │  │
-│  └───────────────────────────────────────────────────┘  │
-│                                                         │
-│  Reads: <game-dir>/Reference/XML/Infos/ (338 XML files) │
-│  Writes: <output-dir>/<script>_<size>_<seed>.xml        │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  OldWorldMapGen                                          │
+│                                                          │
+│  ┌────────────────┐  ┌────────────────────────────────┐  │
+│  │ CLI (Program)  │  │ Stubs & Shims                  │  │
+│  │ - parse args   │  │ - FileSystemXMLLoader          │  │
+│  │ - setup params │  │     reads XML from disk        │  │
+│  │ - load mods    │  │     merges mod XML data        │  │
+│  │ - run script   │  │ - ModLoader                    │  │
+│  │ - write XML    │  │     discovers & loads mods     │  │
+│  └───────┬────────┘  │ - StubModPath / StubScriptMgr  │  │
+│          │           │ - HeadlessGameFactory           │  │
+│          │           │ - UnityPatches (Harmony)        │  │
+│          │           │     stubs Debug.Log, patches    │  │
+│          │           │     Mathf.PerlinNoise           │  │
+│          │           └────────────────┬───────────────┘  │
+│          ▼                            ▼                  │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ Game DLLs (referenced, not modified)               │  │
+│  │                                                    │  │
+│  │ TenCrowns.GameCore.dll                             │  │
+│  │   MapScriptContinent, MapScriptDonut, ...          │  │
+│  │   Infos, ModSettings, GameFactory                  │  │
+│  │   MapBuilder, TileData, NoiseGenerator             │  │
+│  │                                                    │  │
+│  │ Mohawk.SystemCore.dll                              │  │
+│  │   Fractal, RandomStruct, DictionaryList            │  │
+│  │                                                    │  │
+│  │ UnityEngine.CoreModule.dll                         │  │
+│  │   Vector3, Mathf (native calls patched out)        │  │
+│  └────────────────────────────────────────────────────┘  │
+│                                                          │
+│  Reads: <game-dir>/Reference/XML/Infos/ (338 XML files)  │
+│  Reads: <mods-dir>/<mod>/Infos/ (mod XML add/change)     │
+│  Writes: <output-dir>/<script>_<size>_<seed>.xml         │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### Initialization
 
 The game's `Infos` database must be loaded before any map script can run. In the normal game, this flows through several Unity-dependent objects. The tool replaces these with lightweight stubs:
 
-1. **FileSystemXMLLoader** implements the game's `IInfosXMLLoader` interface, reading XML data files directly from `Reference/XML/Infos/` on disk instead of Unity asset bundles. This is the only stub with real logic -- it handles the game's filename matching rules for base files and DLC add-on files (e.g., `terrain.xml` + `terrain-btt.xml`).
+1. **FileSystemXMLLoader** implements the game's `IInfosXMLLoader` interface, reading XML data files directly from `Reference/XML/Infos/` on disk instead of Unity asset bundles. It handles the game's filename matching rules for base files and DLC add-on files (e.g., `terrain.xml` + `terrain-btt.xml`). When mods are loaded, it also implements `GetModdedXML()` and `GetChangedXML()` to merge mod XML data (new entries, changes) into the Infos database using the same `ModdedXMLType` flags the game uses internally.
 
-2. **StubModPath** and **StubUserScriptManager** provide no-op implementations of the mod system interfaces that `ModSettings` requires. The script manager wires up a `HeadlessGameFactory`, which is identical to the game's default `GameFactory` except it skips `ColorManager` creation (which requires Unity's native color space conversion).
+2. **ModLoader** discovers mods from the platform-specific mods directory, parses `ModInfo.xml` for metadata, and loads mod DLLs via `Assembly.LoadFrom()`. Mod DLLs are loaded after game assemblies but before `Infos` initialization, so the game's reflection-based script discovery picks up mod map script classes automatically.
 
-3. **UnityPatches** uses [Harmony](https://github.com/pardeike/Harmony) to handle Unity engine methods that require the native Unity runtime:
+3. **StubModPath** and **StubUserScriptManager** provide no-op implementations of the mod system interfaces that `ModSettings` requires. The script manager wires up a `HeadlessGameFactory`, which is identical to the game's default `GameFactory` except it skips `ColorManager` creation (which requires Unity's native color space conversion).
+
+4. **UnityPatches** uses [Harmony](https://github.com/pardeike/Harmony) to handle Unity engine methods that require the native Unity runtime:
    - `Debug.Log`, `Debug.LogError`, `Debug.LogWarning` are patched to no-ops (the game code calls these during initialization and error handling)
    - `Mathf.PerlinNoise` is an `[InternalCall]` native method that can't be directly patched, so a Harmony transpiler rewrites the IL in `NoiseGenerator.GetPerlinOctaves` to call a managed Perlin noise implementation instead
 
-4. After initialization, the game's `Infos` system uses reflection to discover all map script classes in the loaded assemblies and builds the script registry dynamically. The tool leverages this -- no hardcoded script list.
+5. After initialization, the game's `Infos` system uses reflection to discover all map script classes in the loaded assemblies (including mod DLLs) and builds the script registry dynamically. The tool leverages this -- no hardcoded script list.
 
 ### Map Generation
 
